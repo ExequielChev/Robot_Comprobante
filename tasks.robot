@@ -9,6 +9,7 @@ Library    RPA.Desktop
 Library    OperatingSystem
 Library    openpyxl
 Library    Collections
+Library    RPA.FTP
 
 
 
@@ -16,10 +17,10 @@ Library    Collections
 ${PRIMER_NAME}=
 ${SEGUNDO_NAME}=
 ${excel_file} =    C:\\Users\\zcheveste\\Documents\\Robocop_project\\Robot_Comprobante\\Excels\\MATRIZ CENTRAL.xlsx
-${excel_file2} =    C:\\Users\\zcheveste\\Documents\\Robocop_project\\Robot_Comprobante\\Excels\\facturas_aysa.xlsx
-${excel_file3} =    C:\\Users\\zcheveste\\Documents\\Robocop_project\\Robot_Comprobante\\Excels\\Comprobantes.xlsx
+${excel_file2} =    C:\\Users\\zcheveste\\Documents\\Robocop_project\\OCR\\facturas\\Facturas de Aysa - Bot\\copia_facturas_aysa.xlsx
+${excel_file3} =    C:\\Users\\zcheveste\\Documents\\Robocop_project\\OCR\\comprobantes\\Comprobantes.xlsx
 ${sheet_name} =    SERVICIOS_PUBLICOS
-${sheet_name2} =    facturas_aysa
+${sheet_name2} =    Facturas Aysa
 ${sheet_name3} =    Compromisos
 ${contador}    0
 ${value_to_write} =    OK
@@ -51,11 +52,11 @@ Open the Major.Exe desktop application
 
     #Clickea el nombre de usuario y lo carga
     RPA.Windows.Click    id:6    timeout=120
-    Send Keys    keys=${PRIMER_NAME}SCHEVE
+    Send Keys    keys=${PRIMER_NAME}KTURKI
 
     #Clickea la contraseña de usuario y la carga 
     RPA.Windows.Click    id:5    
-    Send Keys    keys=${SEGUNDO_NAME}180718
+    Send Keys    keys=${SEGUNDO_NAME}37792827
     
     # Iniciar Usuario
     RPA.Windows.Click    id:4
@@ -101,29 +102,38 @@ Carga de datos
 
     #Abrir el excel de la matriz central y crear una lista de donde sacar los datos 
     RPA.Excel.Files.Open Workbook    ${excel_file}
+
     ${data_as_table} =    Read Worksheet As Table    ${sheet_name}    header=True
+
     @{cuenta} =    Create List  # Crear una lista vacía para almacenar los datos de las columnas
 
     #Abrir el excel de facturas aysa y crear una lista de donde sacar los datos 
     RPA.Excel.Files.Open Workbook    ${excel_file2}
     ${data_as_table2} =    Read Worksheet As Table    ${sheet_name2}    header=True
+
     @{n_cuenta2} =    Create List  # Crear una lista vacía para almacenar los datos de las columnas
+
     ${contadorROW2}    Set Variable    2  # Puedes ajustar el valor inicial según tus necesidades
-    Set List Value    1    F    TIPOFB
+    Set Cell Value    1    F    TIPOFB
     Set Cell Value    1    G    ORDEN1
     Set Cell Value    1    H    ESTADO1
 
     FOR    ${row2}    IN    @{data_as_table2}
         Set Cell Value    ${contadorROW2}    F    45
         Set Cell Value    ${contadorROW2}    G    ${contadorROW2}
-        ${contadorZ}    Evaluate    ${contadorROW2} + 1
+        ${contadorROW2}    Evaluate    ${contadorROW2} + 1
     END
+
     ${data_as_table2} =    Read Worksheet As Table    ${sheet_name2}    header=True
+
     Save Workbook
+
     #Abrir el excel de los compromisos y crear una lista de donde sacar los datos 
     RPA.Excel.Files.Open Workbook    ${excel_file3}
     ${data_as_table3} =    Read Worksheet As Table    ${sheet_name3}    header=True
+
     @{n_cuenta3} =    Create List  # Crear una lista vacía para almacenar los datos de las columnas
+
     Set Cell Value    1    D    ORDEN
     Set Cell Value    1    E    ESTADO
 
@@ -133,8 +143,11 @@ Carga de datos
         Set Cell Value    ${contadorROW3}    D    ${contadorROW3}
         ${contadorROW3}    Evaluate    ${contadorROW3} + 1
     END
+
     ${data_as_table3} =    Read Worksheet As Table    ${sheet_name3}    header=True
+
     Save Workbook
+    
     # Filtrar la matriz central por los servicios de agua 
     ${filtered_data} =    Filter Table By Column    ${data_as_table}    SERVICIO    ==    AGUA
     Log    ${filtered_data}
@@ -232,9 +245,11 @@ Carga de datos
                     Send Keys    keys=${year} {RIGHT} {ENTER}
 
                     #Cargar Importe de la factura        
-                    ${importe}    Set Variable    ${row2["Total a Pagar"]}
-                    Send Keys    id:30    ${importe}
-                    Log    datos de compromiso cargados
+                    ${importe} =    Set Variable    ${row2["Total a Pagar"]}
+                    ${numero_sin_puntos} =    Set Variable    ${importe.replace('.', '')}
+                    ${importe_final} =    Set Variable    ${numero_sin_puntos.replace(',', '.')}
+                    Send Keys    id:30    ${importe_final}
+                    Log    datos de comprobante cargados
 
                     #Apretar click en la ventana de Aceptar
                     RPA.Windows.Click    id:45    timeout=30
@@ -356,6 +371,27 @@ Carga de datos
 
                         #Clickear la ventana de aceptar
                         RPA.Windows.Click    id:23    timeout=10
+                        Sleep    1.5s
+
+                        #Ir a la ventana de observacion 
+                        RPA.Windows.Click    id:48    timeout=10
+                        Send Keys    keys={RIGHT 3}
+
+                        #Editar la observacion 
+                        RPA.Windows.Click    id:45
+                        Send Keys    keys=NUMERO_DE_CUENTA:${cuenta} {ENTER}
+                        ${dire}    Set Variable    ${row["DIRECCION"]}
+                        Send Keys    keys=DIRECCION:${dire}
+
+                        #Aceptar la observacion
+                        RPA.Windows.Click    id:43
+                        Sleep    1.5s
+
+                        #Volver a la pestaña de datos
+                        Send Keys    keys={ALT}
+                        RPA.Windows.Click    id:48
+                        Send Keys    keys={RIGHT}
+                        Send Keys    keys={LEFT}
 
                         #Clickear la ventana imprimir
                         RPA.Windows.Click    id:19    timeout=10
