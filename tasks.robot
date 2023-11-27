@@ -7,9 +7,12 @@ Library    String
 Library    DateTime
 Library    RPA.Desktop
 Library    OperatingSystem
-Library    openpyxl
-Library    Collections
-Library    RPA.FTP
+# Library    openpyxl
+# Library    Collections
+# Library    RPA.FTP
+
+
+
 
 
 
@@ -17,7 +20,7 @@ Library    RPA.FTP
 ${PRIMER_NAME}=
 ${SEGUNDO_NAME}=
 ${excel_file} =    C:\\Users\\zcheveste\\Documents\\Robocop_project\\Robot_Comprobante\\Excels\\MATRIZ CENTRAL.xlsx
-${excel_file2} =    C:\\Users\\zcheveste\\Documents\\Robocop_project\\OCR\\facturas\\Facturas de Aysa - Bot\\copia_facturas_aysa.xlsx
+${excel_file2} =    C:\\Users\\zcheveste\\Documents\\Robocop_project\\OCR\\facturas\\Facturas de Aysa - Bot\\facturas_aysa.xlsx
 ${excel_file3} =    C:\\Users\\zcheveste\\Documents\\Robocop_project\\OCR\\comprobantes\\Comprobantes.xlsx
 ${sheet_name} =    SERVICIOS_PUBLICOS
 ${sheet_name2} =    Facturas Aysa
@@ -26,7 +29,8 @@ ${contador}    0
 ${value_to_write} =    OK
 ${value_to_write1} =    SI EXISTE
 ${column_name} =    E
-${column_name1} =    H
+${column_name1} =    I
+${column_name2} =    J
 ${texto_del_cartel}=    existe
 ${ruta_base} =    C:\\Users\\zcheveste\\Documents  
 ${nombre_carpeta} =    DevengadosPdf
@@ -109,14 +113,18 @@ Carga de datos
 
     #Abrir el excel de facturas aysa y crear una lista de donde sacar los datos 
     RPA.Excel.Files.Open Workbook    ${excel_file2}
+
     ${data_as_table2} =    Read Worksheet As Table    ${sheet_name2}    header=True
 
     @{n_cuenta2} =    Create List  # Crear una lista vacía para almacenar los datos de las columnas
 
-    ${contadorROW2}    Set Variable    2  # Puedes ajustar el valor inicial según tus necesidades
+    #Crear columnas
+    ${contadorROW2}    Set Variable    2  
     Set Cell Value    1    F    TIPOFB
     Set Cell Value    1    G    ORDEN1
-    Set Cell Value    1    H    ESTADO1
+    #En la columna H se encuentra "COMPROMISOS"
+    Set Cell Value    1    I    COMPROBANTES
+    Set Cell Value    1    J    DEVENGADOS
 
     FOR    ${row2}    IN    @{data_as_table2}
         Set Cell Value    ${contadorROW2}    F    45
@@ -167,13 +175,13 @@ Carga de datos
         FOR    ${row2}    IN    @{data_as_table2}
 
         ${n_cuenta2} =    Set Variable    ${row2["N° de Cuenta"]}
-        ${estado1} =    Set Variable    ${row2["ESTADO1"]}
+        ${comprobante} =    Set Variable    ${row2["COMPROBANTES"]}
 
         #Iterar sobre las filas de la columna estado para saber si el compromiso ya fue cargado anteriormente o no, los compromisos cargados deberan tener escrito un "OK" en la columna "ESTADO1"
-        IF    '${estado1}' != 'OK'
+        IF    '${comprobante}' != 'OK'
         Log    Checking row con el estado
         ELSE
-            Continue For Loop If    '${estado1}' == 'OK'
+            Continue For Loop If    '${comprobante}' == 'OK'
         Log    Skipping row with "OK"
         END 
 
@@ -373,6 +381,16 @@ Carga de datos
                         RPA.Windows.Click    id:23    timeout=10
                         Sleep    1.5s
 
+                        #Cargar los OK en la columna "Devengados"
+                        Open Workbook    ${excel_file2}
+                        ${numerofila3} =    Set Variable    ${row2["ORDEN1"]}
+                        ${numerofila2} =    Convert To Integer    ${numerofila3}
+                        Set Cell Value    ${numerofila2}    ${column_name2}    ${value_to_write}
+                        Log    Se cambió el valor de la celda a OK
+                        Save Workbook   
+                        Sleep    3s  
+                        Close Workbook
+                
                         #Ir a la ventana de observacion 
                         RPA.Windows.Click    id:48    timeout=10
                         Send Keys    keys={RIGHT 3}
